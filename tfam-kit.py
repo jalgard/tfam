@@ -18,21 +18,21 @@ except ImportError:
     has_termcolor = False
 
 font_styles = {
-    'text_fg'         : 'black',
+    'text_fg'         : 'black',      # normal text
     'text_bg'         : None,
     'text_attrs'      : [],
-    'info_fg'         : 'green',
+    'info_fg'         : 'blue',       # information
     'info_bg'         : None,
-    'info_attrs'      : [],
+    'info_attrs'      : ['bold'],
     'highlight_fg'    : 'white',
     'highlight_bg'    : 'on_red',
     'highlight_attrs' : ['bold'],
-    'marked_fg'       : 'red',
-    'marked_bg'       : None,
+    'infored_fg'      : 'red',
+    'infored_bg'      : None,
     'marked_attrs'    : ['bold'],
-    'motif_fg'        : 'yellow',
-    'motif_bg'        : 'on_blue',
-    'motif_attrs'     : ['bold']
+    'motif_fg'        : 'red',
+    'motif_bg'        : None,
+    'motif_attrs'     : ['underline']
 }
 
 default_output_dest = sys.stdout
@@ -162,8 +162,8 @@ def InfoN50(input_entries, **options):
     for i in sorted(input_entries, key = lambda x : x[2], reverse = True):
         running_sum += i[2]
         if running_sum > total_len / 2:
-            printer('N50\t', message_type = 'highlight', newline = False)
-            printer(i[2], newline = False)
+            printer('N50\t', message_type = 'info', newline = False)
+            printer(i[2], message_type = 'info', newline = False)
             printer('\t', newline = False)
             printer(i[0])
             # EXIT point, nothing to be done
@@ -176,18 +176,27 @@ def InfoEntryLength(input_entries, **options):
     for i in range(len(input_entries)):
         printer(input_entries[i][0], newline = False, message_type = 'text')
         printer('\t', newline = False, message_type = 'text')
-        printer(len(input_entries[i][1]), newline = True, message_type = 'highlight')
+        printer(len(input_entries[i][1]), newline = True, message_type = 'info')
     # EXIT point, nothing to be done
     exit(0)
+
+def EntryRenumerate(input_entries, **options):
+    """ Renames entries using prefix and increment """
+
+    increment = 0
+    prefix = options.get('prefix')
+    for i in range(len(input_entries)):
+        increment += 1
+        input_entries[i][0] = prefix + str(increment)
 
 ACTIONS = {
 'upper'  :    EntryUppercase,          # action:  upper
 'lower'  :    EntryLowercase,          # action:  lower
 'remove' :    ListRemove,              # action:  remove     [needs --list]
 'keep'   :    ListKeep,                # action:  keep       [needs --list]
-#'rename' :    EntryRename,
-'N50'    :    InfoN50,
-'len'    :    InfoEntryLength,
+'renumerate' :    EntryRenumerate,             # action: renumerate  [uses  --prefix]
+'N50'    :    InfoN50,                 # action: N50
+'len'    :    InfoEntryLength,         # action: len
 #'rc'     :    EntryRecvom
 }
 
@@ -203,6 +212,7 @@ TfamOptionsParser.add_argument('--in', dest='fasta', action='store', help="Input
 TfamOptionsParser.add_argument('--out', action='store', help="Output .fasta file name (or stdout if not set")
 TfamOptionsParser.add_argument('--action', required = True, action='store', help="Mutator function applied to the data")
 TfamOptionsParser.add_argument('--list', action='store', help="List of entry names to use in filtering functions")
+TfamOptionsParser.add_argument('--prefix', action='store', help="Sets prefix used by different mutators, for example, renumerate")
 
 '''
     MAIN SCRIPT
@@ -231,9 +241,13 @@ if __name__ == '__main__':
     if run_args.action is None:
         printer('Error! Argument "--action" is mandatory\n', message_type = 'marked', stream = sys.stderr)
         exit(1)
+    prefix = 'seq'
+    if run_args.prefix is not None:
+        prefix = run_args.prefix
 
     options = {
-        'filter_dict' : filter_dict
+        'filter_dict' : filter_dict,
+        'prefix' : prefix
     }
 
     action_func = ACTIONS[run_args.action]
